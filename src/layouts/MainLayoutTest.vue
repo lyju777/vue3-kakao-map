@@ -1,97 +1,56 @@
 <template>
   <div class="q-pa-md">
-    <q-layout
-      view="lHh lpr lFf"
-      container
-      style="height: 800px"
-      class="shadow-2 rounded-borders"
-    >
-      <q-header elevated>
-        <q-bar>
-          <q-icon name="laptop_chromebook" />
-          <div>Google Chrome</div>
-
-          <q-space />
-
-          <q-btn dense flat icon="minimize" />
-          <q-btn dense flat icon="crop_square" />
-          <q-btn dense flat icon="close" />
-        </q-bar>
-
-        <div class="q-pa-sm q-pl-md row items-center">
-          <div class="cursor-pointer non-selectable">
-            File
-            <q-menu>
-              <q-list dense style="min-width: 100px">
-                <q-item clickable v-close-popup>
-                  <q-item-section>Open...</q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup>
-                  <q-item-section>New</q-item-section>
-                </q-item>
-
-                <q-separator />
-
-                <q-item clickable>
-                  <q-item-section>Preferences</q-item-section>
-                  <q-item-section side>
-                    <q-icon name="keyboard_arrow_right" />
-                  </q-item-section>
-
-                  <q-menu anchor="top end" self="top start">
-                    <q-list>
-                      <q-item v-for="n in 3" :key="n" dense clickable>
-                        <q-item-section>Submenu Label</q-item-section>
-                        <q-item-section side>
-                          <q-icon name="keyboard_arrow_right" />
-                        </q-item-section>
-                        <!-- <q-menu auto-close anchor="top end" self="top start">
-                          <q-list>
-                            <q-item v-for="n in 3" :key="n" dense clickable>
-                              <q-item-section>3rd level Label</q-item-section>
-                            </q-item-section>
-                          </q-list>
-                        </q-menu> -->
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-item>
-
-                <q-separator />
-
-                <q-item clickable v-close-popup>
-                  <q-item-section>Quit</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </div>
-
-          <div class="q-ml-md cursor-pointer non-selectable">
-            Edit
-            <q-menu auto-close>
-              <q-list dense style="min-width: 100px">
-                <q-item clickable>
-                  <q-item-section>Cut</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Copy</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Paste</q-item-section>
-                </q-item>
-                <q-separator />
-                <q-item clickable>
-                  <q-item-section>Select All</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </div>
-        </div>
+    <q-layout view="1Hh lpr 1Ff" class="shadow-2 rounded-borders">
+      <q-header bordered class="bg-grey-3 text-primary">
+        <q-toolbar>
+          <q-toolbar-title class="text-center">
+            <q-avatar>
+              <img
+                src="https://developers.kakao.com/tool/resource/static/img/logo/map/kakaomap_basic.png"
+              />
+            </q-avatar>
+            뷰카오맵
+          </q-toolbar-title>
+        </q-toolbar>
       </q-header>
 
+      <q-footer bordered class="bg-grey-3 text-primary">
+        <q-tabs
+          no-caps
+          active-color="primary"
+          indicator-color="transparent"
+          class="text-grey-8"
+          v-model="tab"
+        >
+          <q-tab name="images" label="주변맛집" />
+          <q-tab name="videos" label="Videos" />
+          <q-tab name="articles" label="Articles" />
+        </q-tabs>
+      </q-footer>
+
       <q-page-container>
-        <router-view />
+        <q-page class="q-pa-md">
+          <router-view />
+        </q-page>
       </q-page-container>
     </q-layout>
   </div>
 </template>
+
+<script>
+import { ref } from "vue";
+
+export default {
+  setup() {
+    return {
+      tab: ref("images"),
+    };
+  },
+};
+</script>
+
+<style scoped>
+.q-pa-md {
+  padding: 0px;
+}
+</style>

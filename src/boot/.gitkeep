@@ -1,2 +1,4 @@
 // quasar new boot <name>
 // quasar.config.js boot[] 내 파일명 추가
+
+// http://localhost:9000/ 인지확인
