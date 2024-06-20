@@ -1,96 +1,83 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
+  <div class="q-pa-md">
+    <q-layout view="1Hh lpr 1Ff" class="shadow-2 rounded-borders">
+      <q-header bordered class="bg-grey-3 text-primary">
+        <q-toolbar>
+          <q-toolbar-title class="text-center">
+            <q-avatar>
+              <img
+                src="https://developers.kakao.com/tool/resource/static/img/logo/map/kakaomap_basic.png"
+              />
+            </q-avatar>
+            뷰카오맵
+          </q-toolbar-title>
+        </q-toolbar>
+      </q-header>
 
-        <q-toolbar-title> 뷰카오맵 </q-toolbar-title>
+      <q-footer bordered class="bg-grey-3 text-primary">
+        <q-tabs
+          no-caps
+          active-color="primary"
+          indicator-color="transparent"
+          class="text-grey-8"
+          v-model="tab"
+        >
+          <q-tab
+            ref="food"
+            name="food"
+            label="배고파"
+            @click="onCategorySearch"
+          />
+          <q-tab
+            ref="stay"
+            name="stay"
+            label="피곤해"
+            @click="onCategorySearch"
+          />
+          <q-tab
+            ref="play"
+            name="play"
+            label="심심해"
+            @click="onCategorySearch"
+          />
+        </q-tabs>
+      </q-footer>
 
-        <div>Quasar v{{ $q.version }}</div>
-      </q-toolbar>
-    </q-header>
-
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-        />
-      </q-list>
-    </q-drawer>
-
-    <q-page-container>
-      <router-view />
-    </q-page-container>
-  </q-layout>
+      <q-page-container>
+        <q-page class="q-pa-md">
+          <MainPage :searchCode="searchCode" ref="$childRef" />
+        </q-page>
+      </q-page-container>
+    </q-layout>
+  </div>
 </template>
 
 <script setup>
+import MainPage from "src/pages/MainPage.vue";
 import { ref } from "vue";
-import EssentialLink from "components/EssentialLink.vue";
 
-defineOptions({
-  name: "MainLayout",
-});
+const tab = ref("food");
+const searchCode = ref("FD6");
+const $childRef = ref();
 
-const linksList = [
-  {
-    title: "Docs",
-    caption: "quasar.dev",
-    icon: "school",
-    link: "https://quasar.dev",
-  },
-  {
-    title: "Github",
-    caption: "github.com/quasarframework",
-    icon: "code",
-    link: "https://github.com/quasarframework",
-  },
-  {
-    title: "Discord Chat Channel",
-    caption: "chat.quasar.dev",
-    icon: "chat",
-    link: "https://chat.quasar.dev",
-  },
-  {
-    title: "Forum",
-    caption: "forum.quasar.dev",
-    icon: "record_voice_over",
-    link: "https://forum.quasar.dev",
-  },
-  {
-    title: "Twitter",
-    caption: "@quasarframework",
-    icon: "rss_feed",
-    link: "https://twitter.quasar.dev",
-  },
-  {
-    title: "Facebook",
-    caption: "@QuasarFramework",
-    icon: "public",
-    link: "https://facebook.quasar.dev",
-  },
-  {
-    title: "Quasar Awesome",
-    caption: "Community Quasar projects",
-    icon: "favorite",
-    link: "https://awesome.quasar.dev",
-  },
-];
-
-const leftDrawerOpen = ref(false);
-
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-}
+const onCategorySearch = () => {
+  switch (tab.value) {
+    case "food":
+      searchCode.value = "FD6";
+      break;
+    case "stay":
+      searchCode.value = "AD5";
+      break;
+    case "play":
+      searchCode.value = "CT1";
+      break;
+  }
+  $childRef.value.findNearBySearch(); // MainPage의 findNearBySearch() 호출
+};
 </script>
+
+<style scoped>
+.q-pa-md {
+  padding: 0px;
+}
+</style>
