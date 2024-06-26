@@ -15,29 +15,23 @@
       </q-header>
 
       <q-footer bordered class="bg-grey-3 text-primary">
-        <q-tabs
-          no-caps
-          active-color="primary"
-          indicator-color="transparent"
-          class="text-grey-8"
-          v-model="tab"
-        >
+        <q-tabs inline-label active-color="primary" v-model="tab">
           <q-tab
             ref="food"
             name="food"
-            label="배고파"
+            label="배고파🍕"
             @click="onCategorySearch"
           />
           <q-tab
             ref="stay"
             name="stay"
-            label="피곤해"
+            label="피곤해🏩"
             @click="onCategorySearch"
           />
           <q-tab
             ref="play"
             name="play"
-            label="심심해"
+            label="심심해🧩"
             @click="onCategorySearch"
           />
         </q-tabs>
