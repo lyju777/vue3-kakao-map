@@ -25,13 +25,13 @@
           <q-tab
             ref="stay"
             name="stay"
-            label="피곤해🏩"
+            label="피곤해🛏️"
             @click="onCategorySearch"
           />
           <q-tab
             ref="play"
             name="play"
-            label="심심해🧩"
+            label="심심해🕹️"
             @click="onCategorySearch"
           />
         </q-tabs>
