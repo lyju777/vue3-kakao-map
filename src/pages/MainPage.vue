@@ -5,6 +5,7 @@
         id="map"
         style="width: 100%; height: 100%; position: relative; overflow: hidden"
       ></div>
+
       <div class="currentLocation_btn">
         <q-btn
           id="currentLocation"
@@ -18,6 +19,46 @@
         >
           <q-tooltip class="bg-black">현위치 이동</q-tooltip>
         </q-btn>
+      </div>
+
+      <div
+        v-for="(overlay, index) in overlays"
+        :ref="refOverLays"
+        :key="index"
+        class="wrap"
+        :style="{
+          display: overlay.visible ? 'block' : 'none',
+        }"
+      >
+        <div class="info">
+          <div class="title">
+            {{ overlay.place.place_name }}
+            <div class="close" title="닫기" @click="closeOverlay(index)"></div>
+          </div>
+          <div class="body">
+            <div class="img">
+              <img
+                src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/thumnail.png"
+                width="73"
+                height="70"
+              />
+            </div>
+            <div class="desc">
+              <div class="ellipsis">{{ overlay.place.address_name }}</div>
+              <div class="jibun ellipsis">
+                {{ overlay.place.road_address_name }}
+              </div>
+              <div>
+                <a
+                  :href="`${overlay.place.place_url}`"
+                  target="_blank"
+                  class="link"
+                  >홈페이지</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </q-page>
@@ -34,6 +75,9 @@ const $q = useQuasar();
 const markers = ref([]);
 let map = null;
 let ps = null;
+
+const overlays = ref([]);
+const refOverLays = ref([]);
 
 const props = defineProps({
   searchCode: {
@@ -96,26 +140,28 @@ const initKakaoMap = () => {
       map: map,
     });
 
-    const overlayContent = createOverlayContent({
-      place_name: "현위치",
-      address_name: "현재 위치",
-      road_address_name: "",
-      place_url: "",
+    overlays.value.push({
+      place: {
+        place_name: "현위치",
+        address_name: "현재 위치",
+        road_address_name: "",
+        place_url: "",
+      },
+      visible: false,
     });
 
+    const overlayIndex = overlays.value.length - 1;
+
     const overlay = new kakao.maps.CustomOverlay({
-      content: overlayContent,
+      content: refOverLays.value[overlayIndex],
       map: null,
       position: marker.getPosition(),
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setMap(map);
-    });
-
-    const closeBtn = overlayContent.querySelector(".close");
-    closeBtn.addEventListener("click", () => {
-      overlay.setMap(null);
+      overlays.value[overlayIndex].visible = true;
     });
   });
 };
@@ -123,35 +169,53 @@ const initKakaoMap = () => {
 const displayMarkers = (places, latitude, longitude) => {
   markers.value.forEach((marker) => marker.setMap(null));
   markers.value = [];
+  overlays.value = [];
 
-  places.forEach((place) => {
+  places.forEach((place, index) => {
     const marker = new kakao.maps.Marker({
       position: new kakao.maps.LatLng(place.y, place.x),
       map: map,
     });
     markers.value.push(marker);
 
-    const overlayContent = createOverlayContent(place);
+    overlays.value.push({
+      place: {
+        place_name: place.place_name,
+        address_name: place.address_name,
+        road_address_name: place.road_address_name,
+        place_url: place.place_url,
+      },
+      visible: false,
+    });
+
+    const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
-      content: overlayContent,
+      content: refOverLays.value[overlayIndex],
       map: null,
       position: marker.getPosition(),
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setMap(map);
-    });
-
-    const closeBtn = overlayContent.querySelector(".close");
-    closeBtn.addEventListener("click", () => {
-      overlay.setMap(null);
+      overlays.value[overlayIndex].visible = true;
     });
   });
 
   const currentLocation = new kakao.maps.LatLng(latitude, longitude);
   map.setCenter(currentLocation);
   map.setLevel(4, { anchor: currentLocation });
+};
+
+const hideAllOverlays = () => {
+  overlays.value.forEach((overlay) => {
+    overlay.visible = false;
+  });
+};
+
+const closeOverlay = (index) => {
+  overlays.value[index].visible = false;
 };
 
 const findNearBySearch = () => {
@@ -183,6 +247,7 @@ const findNearBySearch = () => {
   });
 };
 
+// 현 위치 이동
 const returnMyLocation = () => {
   if (!map) {
     return;
@@ -204,142 +269,145 @@ const returnMyLocation = () => {
     });
     markers.value.push(marker);
 
-    const overlayContent = createOverlayContent({
-      place_name: "현위치",
-      address_name: "현재 위치",
-      road_address_name: "",
-      place_url: "",
+    overlays.value.push({
+      place: {
+        place_name: "현위치",
+        address_name: "현재 위치",
+        road_address_name: "",
+        place_url: "",
+      },
+      visible: false,
     });
 
+    const overlayIndex = overlays.value.length - 1;
+
     const overlay = new kakao.maps.CustomOverlay({
-      content: overlayContent,
+      content: refOverLays.value[overlayIndex],
       map: null,
       position: marker.getPosition(),
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setMap(map);
-    });
-
-    const closeBtn = overlayContent.querySelector(".close");
-    closeBtn.addEventListener("click", () => {
-      overlay.setMap(null);
+      overlays.value[overlayIndex].visible = true;
     });
   });
 };
 
-const createOverlayContent = (place) => {
-  const content = document.createElement("div");
-  content.innerHTML = `
-    <div class="wrap">
-      <div class="info">
-        <div class="title">
-          ${place.place_name}
-          <div class="close" title="닫기"></div>
-        </div>
-        <div class="body">
-          <div class="img">
-            <img
-              src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/thumnail.png"
-              width="73"
-              height="70"
-            />
-          </div>
-          <div class="desc">
-            <div class="ellipsis">${place.address_name}</div>
-            <div class="jibun ellipsis">${place.road_address_name}</div>
-            <div>
-              <a
-                href="${place.place_url}"
-                target="_blank"
-                class="link"
-                >홈페이지</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <style>
-      .wrap {
-        position: absolute;
-        left: 0;
-        bottom: 40px;
-        width: 288px;
-        height: 132px;
-        margin-left: -144px;
-        text-align: left;
-        overflow: hidden;
-        font-size: 12px;
-        font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
-        line-height: 1.5;
-      }
-      .wrap * {
-        padding: 0;
-        margin: 0;
-      }
-      .wrap .info {
-        width: 286px;
-        height: 120px;
-        border-radius: 5px;
-        border-bottom: 2px solid #ccc;
-        border-right: 1px solid #ccc;
-        overflow: hidden;
-        background: #fff;
-      }
-      .wrap .info:nth-child(1) {
+defineExpose({
+  findNearBySearch,
+});
+</script>
+<style scoped lang="scss">
+.map_wrap {
+  position: relative;
+  overflow: hidden;
+  width: 60%;
+  height: 80vh;
+
+  .currentLocation_btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    overflow: hidden;
+    z-index: 9999;
+    padding: 1px 3px 5px;
+    box-shadow: 0 2px -1px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  .wrap {
+    position: absolute;
+    left: 0;
+    bottom: 40px;
+    width: 288px;
+    height: 132px;
+    margin-left: -144px;
+    text-align: left;
+    overflow: hidden;
+    font-size: 12px;
+    font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
+    line-height: 1.5;
+    z-index: 999;
+
+    > * {
+      padding: 0;
+      margin: 0;
+    }
+
+    .info {
+      width: 286px;
+      height: 120px;
+      border-radius: 5px;
+      border-bottom: 2px solid #ccc;
+      border-right: 1px solid #ccc;
+      overflow: hidden;
+      background: #fff;
+
+      &:nth-child(1) {
         border: 0;
         box-shadow: 0px 1px 2px #888;
       }
-      .info .title {
+
+      .title {
         padding: 5px 0 0 10px;
         height: 30px;
         background: #eee;
         border-bottom: 1px solid #ddd;
         font-size: 18px;
         font-weight: bold;
+
+        .close {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          color: #888;
+          width: 17px;
+          height: 17px;
+          background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png");
+
+          &:hover {
+            cursor: pointer;
+          }
+        }
       }
-      .info .close {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        color: #888;
-        width: 17px;
-        height: 17px;
-        background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png");
-      }
-      .info .close:hover {
-        cursor: pointer;
-      }
-      .info .body {
+
+      .body {
         position: relative;
         overflow: hidden;
+
+        .desc {
+          position: relative;
+          margin: 13px 0 0 90px;
+          height: 75px;
+
+          .ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .jibun {
+            font-size: 11px;
+            color: #888;
+            margin-top: -2px;
+          }
+        }
+
+        .img {
+          position: absolute;
+          top: 6px;
+          left: 5px;
+          width: 73px;
+          height: 71px;
+          border: 1px solid #ddd;
+          color: #888;
+          overflow: hidden;
+        }
       }
-      .info .desc {
-        position: relative;
-        margin: 13px 0 0 90px;
-        height: 75px;
-      }
-      .desc .ellipsis {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .desc .jibun {
-        font-size: 11px;
-        color: #888;
-        margin-top: -2px;
-      }
-      .info .img {
-        position: absolute;
-        top: 6px;
-        left: 5px;
-        width: 73px;
-        height: 71px;
-        border: 1px solid #ddd;
-        color: #888;
-        overflow: hidden;
-      }
-      .info:after {
+
+      &:after {
         content: "";
         position: absolute;
         margin-left: -12px;
@@ -349,72 +417,11 @@ const createOverlayContent = (place) => {
         height: 12px;
         background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png");
       }
-      .info .link {
+
+      .link {
         color: #5085bb;
       }
-    </style>
-  `;
-  return content;
-};
-
-defineExpose({
-  findNearBySearch,
-});
-</script>
-
-<style scoped lang="scss">
-.map_wrap {
-  position: relative;
-  overflow: hidden;
-  width: 60%;
-  height: 80vh;
-}
-
-.currentLocation_btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  overflow: hidden;
-  z-index: 9999;
-  padding: 1px 3px 5px;
-  box-shadow: 0 2px -1px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-
-.wrap {
-  position: absolute;
-  left: 0;
-  bottom: 40px;
-  width: 288px;
-  height: 132px;
-  margin-left: -144px;
-  text-align: left;
-  overflow: hidden;
-  font-size: 12px;
-  font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
-  line-height: 1.5;
-}
-.wrap * {
-  padding: 0;
-  margin: 0;
-}
-.wrap .info {
-  width: 286px;
-  height: 120px;
-  border-radius: 5px;
-  border-bottom: 2px solid #ccc;
-  border-right: 1px solid #ccc;
-  overflow: hidden;
-  background: #fff;
-}
-.wrap .info:nth-child(1) {
-  border: 0;
-  box-shadow: 0px 1px 2px #888;
-}
-.info .title {
-  padding: 5px 0 0 10px;
-  height: 30px;
-  background: #eee;
-  border-bottom: 1px;
+    }
+  }
 }
 </style>
