@@ -5,7 +5,6 @@
         id="map"
         style="width: 100%; height: 100%; position: relative; overflow: hidden"
       ></div>
-
       <div class="currentLocation_btn">
         <q-btn
           id="currentLocation"
@@ -20,46 +19,6 @@
           <q-tooltip class="bg-black">현위치 이동</q-tooltip>
         </q-btn>
       </div>
-
-      <div
-        v-for="(overlay, index) in overlays"
-        :ref="refOverLays"
-        :key="index"
-        class="wrap"
-        :style="{
-          display: overlay.visible ? 'block' : 'none',
-        }"
-      >
-        <div class="info">
-          <div class="title">
-            {{ overlay.place.place_name }}
-            <div class="close" title="닫기" @click="closeOverlay(index)"></div>
-          </div>
-          <div class="body">
-            <div class="img">
-              <img
-                src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/thumnail.png"
-                width="73"
-                height="70"
-              />
-            </div>
-            <div class="desc">
-              <div class="ellipsis">{{ overlay.place.address_name }}</div>
-              <div class="jibun ellipsis">
-                {{ overlay.place.road_address_name }}
-              </div>
-              <div>
-                <a
-                  :href="`${overlay.place.place_url}`"
-                  target="_blank"
-                  class="link"
-                  >홈페이지</a
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </q-page>
 </template>
@@ -69,7 +28,6 @@ import { ref, onMounted, defineProps, defineExpose } from "vue";
 import { useQuasar } from "quasar";
 
 const { VITE_KAKAO_APP_KEY } = import.meta.env;
-
 const $q = useQuasar();
 
 const markers = ref([]);
@@ -77,7 +35,6 @@ let map = null;
 let ps = null;
 
 const overlays = ref([]);
-const refOverLays = ref([]);
 
 const props = defineProps({
   searchCode: {
@@ -85,6 +42,32 @@ const props = defineProps({
     required: true,
   },
 });
+
+// CustomOverlay적용
+// 카카오맵 CustomOverlay 이슈 https://devtalk.kakao.com/t/topic/105513 (template적용 불가)
+const overlayContents = (overlay) => {
+  return `
+    <div class="wrap">
+      <div class="info">
+        <div class="title">
+          ${overlay.place.place_name}
+          <div class="close" title="닫기" onclick="this.parentElement.parentElement.parentElement.style.display='none'"></div>
+        </div>
+        <div class="body">
+          <div class="img">
+            <img src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/thumnail.png" width="73" height="70" />
+          </div>
+          <div class="desc">
+            <div class="ellipsis">${overlay.place.address_name}</div>
+            <div class="jibun ellipsis">${overlay.place.road_address_name}</div>
+            <div>
+              <a href="${overlay.place.place_url}" target="_blank" class="link">홈페이지</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+};
 
 onMounted(() => {
   const script = document.createElement("script");
@@ -109,6 +92,7 @@ const noSearchResults = (position) => {
   });
 };
 
+// 카카오맵 초기화
 const initKakaoMap = () => {
   const container = document.getElementById("map");
 
@@ -147,25 +131,24 @@ const initKakaoMap = () => {
         road_address_name: "",
         place_url: "",
       },
-      visible: false,
     });
 
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
-      content: refOverLays.value[overlayIndex],
+      content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
-      hideAllOverlays();
+      overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
-      overlays.value[overlayIndex].visible = true;
     });
   });
 };
 
+// 검색마커 노출
 const displayMarkers = (places, latitude, longitude) => {
   markers.value.forEach((marker) => marker.setMap(null));
   markers.value = [];
@@ -185,21 +168,19 @@ const displayMarkers = (places, latitude, longitude) => {
         road_address_name: place.road_address_name,
         place_url: place.place_url,
       },
-      visible: false,
     });
 
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
-      content: refOverLays.value[overlayIndex],
+      content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
-      hideAllOverlays();
+      overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
-      overlays.value[overlayIndex].visible = true;
     });
   });
 
@@ -208,20 +189,13 @@ const displayMarkers = (places, latitude, longitude) => {
   map.setLevel(4, { anchor: currentLocation });
 };
 
-const hideAllOverlays = () => {
-  overlays.value.forEach((overlay) => {
-    overlay.visible = false;
-  });
-};
-
-const closeOverlay = (index) => {
-  overlays.value[index].visible = false;
-};
-
+// 내 주변 버튼 클릭 검색(배고파🍕,피곤해🛏️,심심해🕹️)
 const findNearBySearch = () => {
   if (!map || !ps) {
     return;
   }
+
+  hideAllOverlays();
 
   navigator.geolocation.getCurrentPosition((position) => {
     const { latitude, longitude } = position.coords;
@@ -247,11 +221,21 @@ const findNearBySearch = () => {
   });
 };
 
-// 현 위치 이동
+// 기존의 모든 .wrap div 요소를 화면에서 제거
+const hideAllOverlays = () => {
+  const wrapElements = document.querySelectorAll(".wrap");
+  wrapElements.forEach((element) => {
+    element.parentNode.removeChild(element);
+  });
+};
+
+// 현위치 이동
 const returnMyLocation = () => {
   if (!map) {
     return;
   }
+
+  hideAllOverlays();
 
   navigator.geolocation.getCurrentPosition((position) => {
     const { latitude, longitude } = position.coords;
@@ -276,21 +260,21 @@ const returnMyLocation = () => {
         road_address_name: "",
         place_url: "",
       },
-      visible: false,
     });
 
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
-      content: refOverLays.value[overlayIndex],
+      content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
     });
 
+    overlays.value[overlayIndex].overlay = overlay; // CustomOverlay 객체 저장
+
     kakao.maps.event.addListener(marker, "click", function () {
-      hideAllOverlays();
+      overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
-      overlays.value[overlayIndex].visible = true;
     });
   });
 };
@@ -299,7 +283,8 @@ defineExpose({
   findNearBySearch,
 });
 </script>
-<style scoped lang="scss">
+
+<style lang="scss">
 .map_wrap {
   position: relative;
   overflow: hidden;
