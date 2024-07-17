@@ -54,14 +54,11 @@ const overlayContents = (overlay) => {
           <div class="close" title="닫기" onclick="this.parentElement.parentElement.parentElement.style.display='none'"></div>
         </div>
         <div class="body">
-          <div class="img">
-            <img src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/thumnail.png" width="73" height="70" />
-          </div>
           <div class="desc">
             <div class="ellipsis">${overlay.place.address_name}</div>
             <div class="jibun ellipsis">${overlay.place.road_address_name}</div>
             <div>
-              <a href="${overlay.place.place_url}" target="_blank" class="link">홈페이지</a>
+              <a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">바로가기📍</a>
             </div>
           </div>
         </div>
@@ -142,6 +139,7 @@ const initKakaoMap = () => {
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
     });
@@ -179,6 +177,7 @@ const displayMarkers = (places, latitude, longitude) => {
     });
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
     });
@@ -273,6 +272,7 @@ const returnMyLocation = () => {
     overlays.value[overlayIndex].overlay = overlay; // CustomOverlay 객체 저장
 
     kakao.maps.event.addListener(marker, "click", function () {
+      hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
     });
@@ -311,7 +311,7 @@ defineExpose({
     margin-left: -144px;
     text-align: left;
     overflow: hidden;
-    font-size: 12px;
+    font-size: 14px;
     font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
     line-height: 1.5;
     z-index: 999;
@@ -337,7 +337,7 @@ defineExpose({
 
       .title {
         padding: 5px 0 0 10px;
-        height: 30px;
+        height: 34px;
         background: #eee;
         border-bottom: 1px solid #ddd;
         font-size: 18px;
@@ -364,7 +364,7 @@ defineExpose({
 
         .desc {
           position: relative;
-          margin: 13px 0 0 90px;
+          margin: 13px 0 0 8px;
           height: 75px;
 
           .ellipsis {
