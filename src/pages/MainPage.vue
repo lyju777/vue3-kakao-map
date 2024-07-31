@@ -98,20 +98,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, defineExpose } from "vue";
+import { ref, onMounted, defineProps, defineExpose, watch } from "vue";
 import { useQuasar } from "quasar";
 
 const { VITE_KAKAO_APP_KEY } = import.meta.env;
 const $q = useQuasar();
 
-const markers = ref([]);
 let map = null;
 let ps = null;
 
+const markers = ref([]);
 const overlays = ref([]);
 
 const showSarchLocationDialog = ref(false);
 const searchKeyword = ref("");
+
+const saveLocationForm = ref({
+  address_name: "",
+  place_name: "",
+  isSaved: false,
+});
+
+const saveLocationList = ref([]);
 
 const props = defineProps({
   searchCode: {
@@ -136,14 +144,50 @@ const overlayContents = (overlay) => {
             <div class="jibun ellipsis">${overlay.place.road_address_name}</div>
               ${
                 overlay.place.place_url
-                  ? `<div><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a></div>`
+                  ? `<div style="font-size:large;"><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a>
+                     <span onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.place_name}')" class="q-pa-md q-gutter-sm">🤍</span>
+                      </div>`
                   : ""
               }
+
           </div>
         </div>
       </div>
     </div>`;
 };
+
+// 저장하고 싶은 장소 저장
+const onSaveLocation = (address_name, place_name) => {
+  saveLocationForm.value = {
+    address_name: address_name,
+    place_name: place_name,
+    isSaved: true,
+  };
+
+  // 기존 배열을 가져오기
+  let getSavedAddress = localStorage.getItem("saved_address");
+  getSavedAddress = getSavedAddress ? JSON.parse(getSavedAddress) : [];
+
+  // 새로운 객체를 배열에 추가
+  if (getSavedAddress.some((data) => data.address_name === address_name)) {
+    $q.notify({
+      position: "top",
+      type: "info",
+      color: "yellow",
+      textColor: "black",
+      message: "이미 저장된 장소입니다.",
+    });
+    return;
+  }
+  getSavedAddress.push(saveLocationForm.value);
+
+  // 배열을 다시 로컬 스토리지에 저장
+  localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
+  console.log("저장완료");
+};
+
+// 전역 범위에 함수 노출 (overlayContents에서 onClick이벤트로 사용하기 위함)
+window.onSaveLocation = onSaveLocation;
 
 onMounted(() => {
   const script = document.createElement("script");
@@ -156,7 +200,20 @@ onMounted(() => {
     });
   };
   document.head.appendChild(script);
+
+  const getSavedAddress = localStorage.getItem("saved_address");
+  saveLocationList.value = getSavedAddress ? JSON.parse(getSavedAddress) : [];
 });
+
+// localStorage 데이터 변경 감지
+watch(
+  () => saveLocationForm.value,
+  (newVal, oldVal) => {
+    const getSavedAddress = localStorage.getItem("saved_address");
+    saveLocationList.value = getSavedAddress ? JSON.parse(getSavedAddress) : [];
+    console.log("LocalStorage 변경 감지");
+  }
+);
 
 const noSearchResults = (position, message) => {
   $q.notify({
@@ -382,6 +439,7 @@ const searchLocation = () => {
   });
 };
 
+// 외부에서 호출할 함수 정의
 defineExpose({
   findNearBySearch,
 });
