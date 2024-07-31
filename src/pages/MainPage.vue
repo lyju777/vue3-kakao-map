@@ -5,6 +5,32 @@
         id="map"
         style="width: 100%; height: 100%; position: relative; overflow: hidden"
       ></div>
+
+      <q-dialog v-model="showSarchLocationDialog" persistent>
+        <q-card style="min-width: 350px">
+          <q-card-section>
+            <div class="text-h6">찾는 장소가 있나요?🧐</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <q-input
+              dense
+              v-model="searchKeyword"
+              autofocus
+              @keyup.enter="
+                searchLocation();
+                showSarchLocationDialog = false;
+              "
+            />
+          </q-card-section>
+
+          <q-card-actions align="right" class="text-primary">
+            <q-btn flat label="취소" v-close-popup />
+            <q-btn @click="searchLocation" flat label="찾기" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
       <div class="currentLocation_btn">
         <q-btn
           id="currentLocation"
@@ -16,7 +42,55 @@
           icon="my_location"
           @click="returnMyLocation"
         >
-          <q-tooltip class="bg-black">현위치 이동</q-tooltip>
+          <q-tooltip
+            anchor="center left"
+            self="center right"
+            :offset="[7, 7]"
+            class="bg-black"
+            >현위치 이동</q-tooltip
+          >
+        </q-btn>
+      </div>
+
+      <div class="searchLocation_btn">
+        <q-btn
+          id="searchLocation"
+          class="selected_btn"
+          push
+          color="white"
+          text-color="primary"
+          padding="7px 7px"
+          icon="search"
+          @click="showSarchLocationDialog = true"
+        >
+          <q-tooltip
+            anchor="center left"
+            self="center right"
+            :offset="[7, 7]"
+            class="bg-black"
+            >장소검색</q-tooltip
+          >
+        </q-btn>
+      </div>
+
+      <div class="saveLocation_btn">
+        <q-btn
+          id="saveLocation"
+          class="selected_btn"
+          push
+          color="white"
+          text-color="primary"
+          padding="7px 7px"
+          icon="star"
+          @click="returnMyLocation"
+        >
+          <q-tooltip
+            anchor="center left"
+            self="center right"
+            :offset="[7, 7]"
+            class="bg-black"
+            >저장 장소리스트</q-tooltip
+          >
         </q-btn>
       </div>
     </div>
@@ -35,6 +109,9 @@ let map = null;
 let ps = null;
 
 const overlays = ref([]);
+
+const showSarchLocationDialog = ref(false);
+const searchKeyword = ref("");
 
 const props = defineProps({
   searchCode: {
@@ -57,9 +134,11 @@ const overlayContents = (overlay) => {
           <div class="desc">
             <div class="ellipsis">${overlay.place.address_name}</div>
             <div class="jibun ellipsis">${overlay.place.road_address_name}</div>
-            <div>
-              <a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">바로가기📍</a>
-            </div>
+              ${
+                overlay.place.place_url
+                  ? `<div><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a></div>`
+                  : ""
+              }
           </div>
         </div>
       </div>
@@ -79,13 +158,13 @@ onMounted(() => {
   document.head.appendChild(script);
 });
 
-const noSearchResults = (position) => {
+const noSearchResults = (position, message) => {
   $q.notify({
     position,
     type: "info",
     color: "yellow",
     textColor: "black",
-    message: "검색 결과가 없습니다...😥",
+    message: message,
   });
 };
 
@@ -109,22 +188,22 @@ const initKakaoMap = () => {
     });
     markers.value.push(marker);
 
-    const circle = new kakao.maps.Circle({
-      center: new kakao.maps.LatLng(latitude, longitude),
-      radius: 500,
-      strokeWeight: 1,
-      strokeColor: "#75B8FA",
-      strokeOpacity: 1,
-      strokeStyle: "solid",
-      fillColor: "#CFE7FF",
-      fillOpacity: 0.4,
-      map: map,
-    });
+    // const circle = new kakao.maps.Circle({
+    //   center: new kakao.maps.LatLng(latitude, longitude),
+    //   radius: 500,
+    //   strokeWeight: 1,
+    //   strokeColor: "#75B8FA",
+    //   strokeOpacity: 1,
+    //   strokeStyle: "solid",
+    //   fillColor: "#CFE7FF",
+    //   fillOpacity: 0.4,
+    //   map: map,
+    // });
 
     overlays.value.push({
       place: {
         place_name: "현위치",
-        address_name: "현재 위치",
+        address_name: "현재 나의 위치입니다.",
         road_address_name: "",
         place_url: "",
       },
@@ -188,7 +267,7 @@ const displayMarkers = (places, latitude, longitude) => {
   map.setLevel(4, { anchor: currentLocation });
 };
 
-// 내 주변 버튼 클릭 검색(배고파🍕,피곤해🛏️,심심해🕹️)
+// 내 주변 주요시설 빠른검색(음식점🍴,카페☕,숙박🛏️,편의점🏪,주차장🚗)
 const findNearBySearch = () => {
   if (!map || !ps) {
     return;
@@ -207,7 +286,7 @@ const findNearBySearch = () => {
           markers.value = [];
 
           console.error(status);
-          noSearchResults("top");
+          noSearchResults("top", "검색 결과가 없습니다...😥");
         }
         displayMarkers(data, latitude, longitude);
       },
@@ -228,7 +307,7 @@ const hideAllOverlays = () => {
   });
 };
 
-// 현위치 이동
+// 현위치로 이동
 const returnMyLocation = () => {
   if (!map) {
     return;
@@ -255,7 +334,7 @@ const returnMyLocation = () => {
     overlays.value.push({
       place: {
         place_name: "현위치",
-        address_name: "현재 위치",
+        address_name: "현재 나의 위치입니다.",
         road_address_name: "",
         place_url: "",
       },
@@ -279,134 +358,33 @@ const returnMyLocation = () => {
   });
 };
 
+// 장소검색
+const searchLocation = () => {
+  if (!map || !ps) {
+    return;
+  }
+
+  hideAllOverlays();
+
+  ps.keywordSearch(searchKeyword.value, (data, status, _pagination) => {
+    if (status != kakao.maps.services.Status.OK) {
+      markers.value.forEach((marker) => marker.setMap(null));
+      markers.value = [];
+
+      console.error(status);
+      if (searchKeyword.value === "") {
+        noSearchResults("top", "장소를 입력해주세요...😵");
+      } else {
+        noSearchResults("top", "검색 결과가 없습니다...😥");
+      }
+    }
+    displayMarkers(data, data[0].y, data[0].x);
+  });
+};
+
 defineExpose({
   findNearBySearch,
 });
 </script>
 
-<style lang="scss">
-.map_wrap {
-  position: relative;
-  overflow: hidden;
-  width: 60%;
-  height: 80vh;
-
-  .currentLocation_btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    overflow: hidden;
-    z-index: 9999;
-    padding: 1px 3px 5px;
-    box-shadow: 0 2px -1px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-  }
-
-  .wrap {
-    position: absolute;
-    left: 0;
-    bottom: 40px;
-    width: 288px;
-    height: 132px;
-    margin-left: -144px;
-    text-align: left;
-    overflow: hidden;
-    font-size: 14px;
-    font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
-    line-height: 1.5;
-    z-index: 999;
-
-    > * {
-      padding: 0;
-      margin: 0;
-    }
-
-    .info {
-      width: 286px;
-      height: 120px;
-      border-radius: 5px;
-      border-bottom: 2px solid #ccc;
-      border-right: 1px solid #ccc;
-      overflow: hidden;
-      background: #fff;
-
-      &:nth-child(1) {
-        border: 0;
-        box-shadow: 0px 1px 2px #888;
-      }
-
-      .title {
-        padding: 5px 0 0 10px;
-        height: 34px;
-        background: #eee;
-        border-bottom: 1px solid #ddd;
-        font-size: 18px;
-        font-weight: bold;
-
-        .close {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          color: #888;
-          width: 17px;
-          height: 17px;
-          background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png");
-
-          &:hover {
-            cursor: pointer;
-          }
-        }
-      }
-
-      .body {
-        position: relative;
-        overflow: hidden;
-
-        .desc {
-          position: relative;
-          margin: 13px 0 0 8px;
-          height: 75px;
-
-          .ellipsis {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-
-          .jibun {
-            font-size: 11px;
-            color: #888;
-            margin-top: -2px;
-          }
-        }
-
-        .img {
-          position: absolute;
-          top: 6px;
-          left: 5px;
-          width: 73px;
-          height: 71px;
-          border: 1px solid #ddd;
-          color: #888;
-          overflow: hidden;
-        }
-      }
-
-      &:after {
-        content: "";
-        position: absolute;
-        margin-left: -12px;
-        left: 50%;
-        bottom: 0;
-        width: 22px;
-        height: 12px;
-        background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png");
-      }
-
-      .link {
-        color: #5085bb;
-      }
-    }
-  }
-}
-</style>
+<style src="../css/MainPage.scss" lang="scss"></style>

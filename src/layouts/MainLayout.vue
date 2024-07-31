@@ -9,7 +9,7 @@
                 src="https://developers.kakao.com/tool/resource/static/img/logo/map/kakaomap_basic.png"
               />
             </q-avatar>
-            뷰카오맵
+            <span style="font-weight: 600; margin-left: 10px">어디갈까</span>
           </q-toolbar-title>
         </q-toolbar>
       </q-header>
@@ -19,19 +19,31 @@
           <q-tab
             ref="food"
             name="food"
-            label="배고파🍕"
+            label="음식점🍴"
+            @click="onCategorySearch"
+          />
+          <q-tab
+            ref="cafe"
+            name="cafe"
+            label="카페☕"
             @click="onCategorySearch"
           />
           <q-tab
             ref="stay"
             name="stay"
-            label="피곤해🛏️"
+            label="숙박🛏️"
             @click="onCategorySearch"
           />
           <q-tab
-            ref="play"
-            name="play"
-            label="심심해🕹️"
+            ref="store"
+            name="store"
+            label="편의점🏪"
+            @click="onCategorySearch"
+          />
+          <q-tab
+            ref="carPark"
+            name="carPark"
+            label="주차장🚗"
             @click="onCategorySearch"
           />
         </q-tabs>
@@ -54,16 +66,23 @@ const tab = ref("food");
 const searchCode = ref("FD6");
 const $childRef = ref();
 
+// 카테고리별 검색 코드 설정
 const onCategorySearch = () => {
   switch (tab.value) {
     case "food":
       searchCode.value = "FD6";
       break;
+    case "cafe":
+      searchCode.value = "CE7";
+      break;
     case "stay":
       searchCode.value = "AD5";
       break;
-    case "play":
-      searchCode.value = "CT1";
+    case "store":
+      searchCode.value = "CS2";
+      break;
+    case "carPark":
+      searchCode.value = "OL7";
       break;
   }
   $childRef.value.findNearBySearch(); // MainPage의 findNearBySearch() 호출
