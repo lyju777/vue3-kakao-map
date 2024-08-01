@@ -9,7 +9,7 @@
                 src="https://developers.kakao.com/tool/resource/static/img/logo/map/kakaomap_basic.png"
               />
             </q-avatar>
-            <span style="font-weight: 600; margin-left: 10px">어디갈까</span>
+            <span style="font-weight: 600; margin-left: 10px">Vuekao Map</span>
           </q-toolbar-title>
         </q-toolbar>
       </q-header>

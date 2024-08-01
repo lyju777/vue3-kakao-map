@@ -18,15 +18,23 @@
               v-model="searchKeyword"
               autofocus
               @keyup.enter="
-                searchLocation();
-                showSarchLocationDialog = false;
+                if (isSearchKeyword) {
+                  searchLocation();
+                  showSarchLocationDialog = false;
+                }
               "
             />
           </q-card-section>
 
           <q-card-actions align="right" class="text-primary">
             <q-btn flat label="취소" v-close-popup />
-            <q-btn @click="searchLocation" flat label="찾기" v-close-popup />
+            <q-btn
+              :disable="!isSearchKeyword"
+              @click="searchLocation"
+              flat
+              label="찾기"
+              v-close-popup
+            />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -98,7 +106,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, defineExpose, watch } from "vue";
+import {
+  ref,
+  onMounted,
+  defineProps,
+  defineExpose,
+  watch,
+  computed,
+} from "vue";
 import { useQuasar } from "quasar";
 
 const { VITE_KAKAO_APP_KEY } = import.meta.env;
@@ -110,15 +125,19 @@ let ps = null;
 const markers = ref([]);
 const overlays = ref([]);
 
+// 장소검색 다이얼로그
 const showSarchLocationDialog = ref(false);
+
+// 장소검색 입력값
 const searchKeyword = ref("");
 
+// 저장하고 싶은 장소 정보
 const saveLocationForm = ref({
   address_name: "",
   place_name: "",
-  isSaved: false,
 });
 
+// 저장된 장소 리스트
 const saveLocationList = ref([]);
 
 const props = defineProps({
@@ -128,15 +147,30 @@ const props = defineProps({
   },
 });
 
+// 검색어 입력 체크
+const isSearchKeyword = computed(() => searchKeyword.value.trim() !== "");
+
+// 해당 overlayContents의 주소(address_name)가 localStorage에 저장되었는지 체크
+const isAddressSaved = (address_name) => {
+  const savedAddresses = localStorage.getItem("saved_address");
+  if (savedAddresses) {
+    const parsedAddresses = JSON.parse(savedAddresses);
+    return parsedAddresses.some((data) => data.address_name === address_name);
+  }
+  return false;
+};
+
 // CustomOverlay적용
 // 카카오맵 CustomOverlay 이슈 https://devtalk.kakao.com/t/topic/105513 (template적용 불가)
 const overlayContents = (overlay) => {
+  const isSaved = isAddressSaved(overlay.place.address_name);
+  const saveButtonText = isSaved ? "💛" : "🤍";
   return `
-    <div class="wrap">
+    <div id="overlayWrap" class="wrap">
       <div class="info">
         <div class="title">
           ${overlay.place.place_name}
-          <div class="close" title="닫기" onclick="this.parentElement.parentElement.parentElement.style.display='none'"></div>
+          <div id="overlayClose" class="close" title="닫기" onclick="closeOverlay()"></div>
         </div>
         <div class="body">
           <div class="desc">
@@ -145,44 +179,59 @@ const overlayContents = (overlay) => {
               ${
                 overlay.place.place_url
                   ? `<div style="font-size:large;"><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a>
-                     <span onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.place_name}')" class="q-pa-md q-gutter-sm">🤍</span>
+                     <span id="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.place_name}')" class="q-pa-md q-gutter-sm">${saveButtonText}</span>
                       </div>`
                   : ""
               }
-
           </div>
         </div>
       </div>
     </div>`;
 };
 
+// overlayContents 닫기
+const closeOverlay = () => {
+  document.getElementById("overlayWrap").style.display = "none";
+};
+
+// 전역 범위에 함수 노출 (overlayContents에서 onClick이벤트로 사용하기 위함)
+window.closeOverlay = closeOverlay;
+
 // 저장하고 싶은 장소 저장
 const onSaveLocation = (address_name, place_name) => {
+  const element = document.getElementById("saveButton");
+
   saveLocationForm.value = {
     address_name: address_name,
     place_name: place_name,
-    isSaved: true,
   };
 
   // 기존 배열을 가져오기
   let getSavedAddress = localStorage.getItem("saved_address");
   getSavedAddress = getSavedAddress ? JSON.parse(getSavedAddress) : [];
 
-  // 새로운 객체를 배열에 추가
+  // 이미 저장된 장소인지 확인
   if (getSavedAddress.some((data) => data.address_name === address_name)) {
-    $q.notify({
-      position: "top",
-      type: "info",
-      color: "yellow",
-      textColor: "black",
-      message: "이미 저장된 장소입니다.",
-    });
+    const index = getSavedAddress.findIndex(
+      (data) => data.address_name === address_name
+    );
+    getSavedAddress.splice(index, 1);
+    SearchResultsPopup("top", "positive", "장소 저장이 취소 되었습니다.🤗");
+
+    // 배열을 다시 로컬 스토리지에 저장
+    localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
+    element.textContent = "🤍";
+
     return;
   }
+  // 새로운 장소 저장
   getSavedAddress.push(saveLocationForm.value);
 
   // 배열을 다시 로컬 스토리지에 저장
   localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
+  SearchResultsPopup("top", "positive", "장소가 저장 되었습니다.😎");
+
+  element.textContent = "💛";
   console.log("저장완료");
 };
 
@@ -215,10 +264,11 @@ watch(
   }
 );
 
-const noSearchResults = (position, message) => {
+// 검색결과 팝업
+const SearchResultsPopup = (position, type, message) => {
   $q.notify({
     position,
-    type: "info",
+    type: type,
     color: "yellow",
     textColor: "black",
     message: message,
@@ -343,7 +393,7 @@ const findNearBySearch = () => {
           markers.value = [];
 
           console.error(status);
-          noSearchResults("top", "검색 결과가 없습니다...😥");
+          SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥");
         }
         displayMarkers(data, latitude, longitude);
       },
@@ -429,11 +479,8 @@ const searchLocation = () => {
       markers.value = [];
 
       console.error(status);
-      if (searchKeyword.value === "") {
-        noSearchResults("top", "장소를 입력해주세요...😵");
-      } else {
-        noSearchResults("top", "검색 결과가 없습니다...😥");
-      }
+
+      SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥");
     }
     displayMarkers(data, data[0].y, data[0].x);
   });

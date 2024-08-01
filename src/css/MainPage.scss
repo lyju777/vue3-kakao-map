@@ -1,7 +1,7 @@
 .map_wrap {
   position: relative;
   overflow: hidden;
-  width: 60%;
+  width: 65%;
   height: 80vh;
 
   #menu_wrap {
@@ -61,7 +61,7 @@
     text-align: left;
     overflow: hidden;
     font-size: 14px;
-    font-family: "Malgun Gothic", dotum, "돋움", sans-serif;
+    font-family: "Noto Sans KR", sans-serif;
     line-height: 1.5;
     z-index: 999;
 
@@ -87,22 +87,38 @@
       .title {
         padding: 5px 0 0 10px;
         height: 34px;
-        background: #eee;
+        background: #238cfa;
         border-bottom: 1px solid #ddd;
-        font-size: 18px;
-        font-weight: bold;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
 
         .close {
           position: absolute;
-          top: 10px;
+          top: 9px;
           right: 10px;
           color: #888;
           width: 17px;
           height: 17px;
-          background: url("https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png");
 
           &:hover {
             cursor: pointer;
+          }
+
+          &::before,
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 17px;
+            background-color: #ffffff;
+            transform: translate(-50%, -50%) rotate(45deg);
+          }
+
+          &::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
           }
         }
       }
@@ -120,12 +136,14 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            min-height: 21px;
           }
 
           .jibun {
             font-size: 11px;
             color: #888;
             margin-top: -2px;
+            min-height: 19px;
           }
         }
 
