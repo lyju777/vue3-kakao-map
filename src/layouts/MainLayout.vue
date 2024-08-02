@@ -1,7 +1,7 @@
 <template>
   <div class="q-pa-md">
     <q-layout view="1Hh lpr 1Ff" class="shadow-2 rounded-borders">
-      <q-header bordered class="bg-grey-3 text-primary">
+      <q-header class="bg-white text-primary" style="top: 8px">
         <q-toolbar>
           <q-toolbar-title class="text-center">
             <q-avatar>
@@ -9,12 +9,12 @@
                 src="https://developers.kakao.com/tool/resource/static/img/logo/map/kakaomap_basic.png"
               />
             </q-avatar>
-            <span style="font-weight: 600; margin-left: 10px">Vuekao Map</span>
+            <span style="font-weight: 600; margin-left: 10px">Vuekao map</span>
           </q-toolbar-title>
         </q-toolbar>
       </q-header>
 
-      <q-footer bordered class="bg-grey-3 text-primary">
+      <q-footer bordered class="bg-white text-primary">
         <q-tabs inline-label active-color="primary" v-model="tab">
           <q-tab
             ref="food"
