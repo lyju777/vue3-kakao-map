@@ -6,38 +6,13 @@
         style="width: 100%; height: 100%; position: relative; overflow: hidden"
       ></div>
 
-      <q-dialog v-model="showSarchLocationDialog" persistent>
-        <q-card style="min-width: 350px">
-          <q-card-section>
-            <div class="text-h6">찾는 장소가 있나요?🧐</div>
-          </q-card-section>
-
-          <q-card-section class="q-pt-none">
-            <q-input
-              dense
-              v-model="searchKeyword"
-              autofocus
-              @keyup.enter="
-                if (isSearchKeyword) {
-                  searchLocation();
-                  showSarchLocationDialog = false;
-                }
-              "
-            />
-          </q-card-section>
-
-          <q-card-actions align="right" class="text-primary">
-            <q-btn flat label="취소" v-close-popup />
-            <q-btn
-              :disable="!isSearchKeyword"
-              @click="searchLocation"
-              flat
-              label="찾기"
-              v-close-popup
-            />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+      <!-- 장소검색 Dialog -->
+      <SearchLocationDialog
+        v-model:showSearchLocationDialog="showSearchLocationDialog"
+        v-model:searchKeyword="searchKeyword"
+        :isSearchKeyword="isSearchKeyword"
+        @searchLocation="searchLocation"
+      ></SearchLocationDialog>
 
       <div class="currentLocation_btn">
         <q-btn
@@ -69,7 +44,7 @@
           text-color="primary"
           padding="7px 7px"
           icon="search"
-          @click="showSarchLocationDialog = true"
+          @click="showSearchLocationDialog = true"
         >
           <q-tooltip
             anchor="center left"
@@ -115,6 +90,7 @@ import {
   computed,
 } from "vue";
 import { useQuasar } from "quasar";
+import SearchLocationDialog from "src/components/mainPage/SearchLocationDialog.vue";
 
 const { VITE_KAKAO_APP_KEY } = import.meta.env;
 const $q = useQuasar();
@@ -126,7 +102,7 @@ const markers = ref([]);
 const overlays = ref([]);
 
 // 장소검색 다이얼로그
-const showSarchLocationDialog = ref(false);
+const showSearchLocationDialog = ref(false);
 
 // 장소검색 입력값
 const searchKeyword = ref("");
