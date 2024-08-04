@@ -2,7 +2,9 @@
   <q-dialog v-model="showSearchLocationDialog" persistent>
     <q-card style="min-width: 350px">
       <q-card-section>
-        <div class="text-h6">찾는 장소가 있나요?🧐</div>
+        <div class="text-h6" style="font-size: large">
+          <span style="font-size: x-large">🧐</span>찾으시는 장소가 있나요?
+        </div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">

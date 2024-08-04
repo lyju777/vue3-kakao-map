@@ -14,6 +14,93 @@
         @searchLocation="searchLocation"
       ></SearchLocationDialog>
 
+      <!-- 저장 장소 리스트 Dialog -->
+      <q-dialog v-model="showSaveLocationListDialog">
+        <q-card>
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6">저장한 장소</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section ection>
+            <div class="q-pa-md flex justify-center">
+              <div style="max-width: 100%; width: 300px">
+                <q-intersection
+                  v-for="item in saveLocationList"
+                  :key="item.address_name"
+                  once
+                  transition="scale"
+                  class="example-item"
+                >
+                  <q-item clickable v-ripple>
+                    <q-item-section @click="testFun()">
+                      <q-item-label style="font-weight: 700; color: #0063c9">{{
+                        item.place_name
+                      }}</q-item-label>
+                      <q-item-label caption lines="1">{{
+                        item.address_name
+                      }}</q-item-label>
+                    </q-item-section>
+
+                    <q-item-section side>
+                      <div style="display: flex">
+                        <div
+                          @click="
+                            onCheckSaveListCancel(
+                              item.address_name,
+                              item.road_address_name,
+                              item.place_name
+                            )
+                          "
+                          style="font-size: x-large"
+                        >
+                          💛
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </q-item>
+                </q-intersection>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </q-dialog>
+
+      <!-- 저장 장소 리스트 취소 확인팝업 -->
+      <q-dialog
+        v-model="checkSaveListCancel"
+        persistent
+        transition-show="scale"
+        transition-hide="scale"
+      >
+        <q-card class="text-black" style="width: 340px">
+          <q-card-section>
+            <div class="text-h7" style="font-size: medium; margin: 10px">
+              <span style="font-size: x-large">🤔</span>저장한 장소를 삭제
+              하시겠습니까?
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right" class="bg-white text-primary">
+            <q-btn flat label="취소" v-close-popup />
+            <q-btn
+              flat
+              label="확인"
+              v-close-popup
+              @click="
+                onSaveLocation(
+                  saveLocationForm.address_name,
+                  saveLocationForm.road_address_name,
+                  saveLocationForm.place_name
+                )
+              "
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- 현위치 이동 Button -->
       <div class="currentLocation_btn">
         <q-btn
           id="currentLocation"
@@ -35,6 +122,7 @@
         </q-btn>
       </div>
 
+      <!-- 장소검색 Button-->
       <div class="searchLocation_btn">
         <q-btn
           id="searchLocation"
@@ -56,6 +144,7 @@
         </q-btn>
       </div>
 
+      <!-- 저장 장소리스트 Button -->
       <div class="saveLocation_btn">
         <q-btn
           id="saveLocation"
@@ -64,8 +153,8 @@
           color="white"
           text-color="primary"
           padding="7px 7px"
-          icon="star"
-          @click="returnMyLocation"
+          icon="favorite"
+          @click="showSaveLocationListDialog = true"
         >
           <q-tooltip
             anchor="center left"
@@ -103,6 +192,10 @@ const overlays = ref([]);
 
 // 장소검색 다이얼로그
 const showSearchLocationDialog = ref(false);
+// 저장 장소 리스트 다이얼로그
+const showSaveLocationListDialog = ref(false);
+// 저장 장소 리스트 취소 확인
+const checkSaveListCancel = ref(false);
 
 // 장소검색 입력값
 const searchKeyword = ref("");
@@ -110,6 +203,7 @@ const searchKeyword = ref("");
 // 저장하고 싶은 장소 정보
 const saveLocationForm = ref({
   address_name: "",
+  road_address_name: "",
   place_name: "",
 });
 
@@ -123,15 +217,32 @@ const props = defineProps({
   },
 });
 
+const testFun = () => {
+  alert("test");
+};
+
+const onCheckSaveListCancel = (address_name, road_address_name, place_name) => {
+  saveLocationForm.value = {
+    address_name: address_name,
+    road_address_name: road_address_name,
+    place_name: place_name,
+  };
+
+  checkSaveListCancel.value = true;
+};
+
 // 검색어 입력 체크
 const isSearchKeyword = computed(() => searchKeyword.value.trim() !== "");
 
 // 해당 overlayContents의 주소(address_name)가 localStorage에 저장되었는지 체크
-const isAddressSaved = (address_name) => {
+const isAddressSaved = (address_name, place_name) => {
   const savedAddresses = localStorage.getItem("saved_address");
   if (savedAddresses) {
     const parsedAddresses = JSON.parse(savedAddresses);
-    return parsedAddresses.some((data) => data.address_name === address_name);
+    return parsedAddresses.some(
+      (data) =>
+        data.address_name === address_name && data.place_name === place_name
+    );
   }
   return false;
 };
@@ -139,7 +250,10 @@ const isAddressSaved = (address_name) => {
 // CustomOverlay적용
 // 카카오맵 CustomOverlay 이슈 https://devtalk.kakao.com/t/topic/105513 (template적용 불가)
 const overlayContents = (overlay) => {
-  const isSaved = isAddressSaved(overlay.place.address_name);
+  const isSaved = isAddressSaved(
+    overlay.place.address_name,
+    overlay.place.place_name
+  );
   const saveButtonText = isSaved ? "💛" : "🤍";
   return `
     <div id="overlayWrap" class="wrap">
@@ -155,7 +269,7 @@ const overlayContents = (overlay) => {
               ${
                 overlay.place.place_url
                   ? `<div style="font-size:large;"><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a>
-                     <span id="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.place_name}')" class="q-pa-md q-gutter-sm">${saveButtonText}</span>
+                     <span style="margin-left: 10px;" id="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.road_address_name}','${overlay.place.place_name}')" class="q-gutter-sm">${saveButtonText}</span>
                       </div>`
                   : ""
               }
@@ -174,11 +288,17 @@ const closeOverlay = () => {
 window.closeOverlay = closeOverlay;
 
 // 저장하고 싶은 장소 저장
-const onSaveLocation = (address_name, place_name) => {
+const onSaveLocation = (address_name, road_address_name, place_name) => {
   const element = document.getElementById("saveButton");
+
+  // if (!element) {
+  //   console.error("element를 찾을 수 없습니다.");
+  //   return;
+  // }
 
   saveLocationForm.value = {
     address_name: address_name,
+    road_address_name: road_address_name,
     place_name: place_name,
   };
 
@@ -192,7 +312,12 @@ const onSaveLocation = (address_name, place_name) => {
       (data) => data.address_name === address_name
     );
     getSavedAddress.splice(index, 1);
-    SearchResultsPopup("top", "positive", "장소 저장이 취소 되었습니다.🤗");
+    SearchResultsPopup(
+      "top",
+      "positive",
+      "장소 저장이 취소 되었습니다.🤗",
+      "positive"
+    );
 
     // 배열을 다시 로컬 스토리지에 저장
     localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
@@ -205,7 +330,12 @@ const onSaveLocation = (address_name, place_name) => {
 
   // 배열을 다시 로컬 스토리지에 저장
   localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
-  SearchResultsPopup("top", "positive", "장소가 저장 되었습니다.😎");
+  SearchResultsPopup(
+    "top",
+    "positive",
+    "장소가 저장 되었습니다.😎",
+    "positive"
+  );
 
   element.textContent = "💛";
   console.log("저장완료");
@@ -241,12 +371,14 @@ watch(
 );
 
 // 검색결과 팝업
-const SearchResultsPopup = (position, type, message) => {
+const SearchResultsPopup = (position, type, message, badgeColor) => {
   $q.notify({
     position,
     type: type,
     color: "yellow",
     textColor: "black",
+    badgeColor: badgeColor,
+    badgeTextColor: "white",
     message: message,
   });
 };
@@ -369,7 +501,12 @@ const findNearBySearch = () => {
           markers.value = [];
 
           console.error(status);
-          SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥");
+          SearchResultsPopup(
+            "top",
+            "info",
+            "검색 결과가 없습니다.😥",
+            "negative"
+          );
         }
         displayMarkers(data, latitude, longitude);
       },
@@ -456,7 +593,7 @@ const searchLocation = () => {
 
       console.error(status);
 
-      SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥");
+      SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥", "negative");
     }
     displayMarkers(data, data[0].y, data[0].x);
   });
