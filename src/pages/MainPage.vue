@@ -288,13 +288,9 @@ const closeOverlay = () => {
 window.closeOverlay = closeOverlay;
 
 // 저장하고 싶은 장소 저장
+
 const onSaveLocation = (address_name, road_address_name, place_name) => {
   const element = document.getElementById("saveButton");
-
-  // if (!element) {
-  //   console.error("element를 찾을 수 없습니다.");
-  //   return;
-  // }
 
   saveLocationForm.value = {
     address_name: address_name,
@@ -321,7 +317,9 @@ const onSaveLocation = (address_name, road_address_name, place_name) => {
 
     // 배열을 다시 로컬 스토리지에 저장
     localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
-    element.textContent = "🤍";
+    if (element) {
+      element.textContent = "🤍";
+    }
 
     return;
   }
@@ -336,8 +334,9 @@ const onSaveLocation = (address_name, road_address_name, place_name) => {
     "장소가 저장 되었습니다.😎",
     "positive"
   );
-
-  element.textContent = "💛";
+  if (element) {
+    element.textContent = "💛";
+  }
   console.log("저장완료");
 };
 
@@ -529,7 +528,7 @@ const hideAllOverlays = () => {
 
 // 현위치로 이동
 const returnMyLocation = () => {
-  if (!map) {
+  if (!map || !ps) {
     return;
   }
 
@@ -587,15 +586,16 @@ const searchLocation = () => {
   hideAllOverlays();
 
   ps.keywordSearch(searchKeyword.value, (data, status, _pagination) => {
-    if (status != kakao.maps.services.Status.OK) {
+    if (status !== kakao.maps.services.Status.OK) {
       markers.value.forEach((marker) => marker.setMap(null));
       markers.value = [];
 
       console.error(status);
 
       SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥", "negative");
+    } else {
+      displayMarkers(data, data[0].y, data[0].x);
     }
-    displayMarkers(data, data[0].y, data[0].x);
   });
 };
 

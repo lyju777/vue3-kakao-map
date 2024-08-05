@@ -12,6 +12,7 @@
           dense
           v-model="searchKeyword"
           autofocus
+          placeholder="키워드를 입력하세요. ex) 제주도 맛집"
           @keyup.enter="
             if (isSearchKeyword) {
               searchLocation();
