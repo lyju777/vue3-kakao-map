@@ -34,7 +34,7 @@
                   class="example-item"
                 >
                   <q-item clickable v-ripple>
-                    <q-item-section @click="testFun()">
+                    <q-item-section @click="goToSaveLocation(item)">
                       <q-item-label style="font-weight: 700; color: #0063c9">{{
                         item.place_name
                       }}</q-item-label>
@@ -50,7 +50,8 @@
                             onCheckSaveListCancel(
                               item.address_name,
                               item.road_address_name,
-                              item.place_name
+                              item.place_name,
+                              item.place_url
                             )
                           "
                           style="font-size: x-large"
@@ -92,7 +93,8 @@
                 onSaveLocation(
                   saveLocationForm.address_name,
                   saveLocationForm.road_address_name,
-                  saveLocationForm.place_name
+                  saveLocationForm.place_name,
+                  saveLocationForm.place_url
                 )
               "
             />
@@ -205,6 +207,7 @@ const saveLocationForm = ref({
   address_name: "",
   road_address_name: "",
   place_name: "",
+  place_url: "",
 });
 
 // 저장된 장소 리스트
@@ -217,15 +220,77 @@ const props = defineProps({
   },
 });
 
-const testFun = () => {
-  alert("test");
+// 저장된 장소로 이동
+const goToSaveLocation = (item) => {
+  if (!map || !ps) {
+    return;
+  }
+
+  hideAllOverlays();
+  const geocoder = new kakao.maps.services.Geocoder();
+
+  geocoder.addressSearch(item.address_name, (result, status) => {
+    if (status === kakao.maps.services.Status.OK) {
+      const { y: latitude, x: longitude } = result[0];
+
+      // 기존 마커 제거
+      markers.value.forEach((marker) => marker.setMap(null));
+      markers.value = [];
+
+      // 새로운 마커 생성
+      const marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(latitude, longitude),
+        map: map,
+      });
+
+      // 마커 배열에 추가
+      markers.value.push(marker);
+
+      // 지도 중심을 검색된 주소로 이동
+      const currentLocation = new kakao.maps.LatLng(latitude, longitude);
+      map.setCenter(currentLocation);
+      map.setLevel(4, { anchor: currentLocation });
+
+      showSaveLocationListDialog.value = false;
+
+      overlays.value.push({
+        place: {
+          place_name: item.place_name,
+          address_name: item.address_name,
+          road_address_name: item.road_address_name,
+          place_url: item.place_url,
+        },
+      });
+
+      const overlayIndex = overlays.value.length - 1;
+
+      const overlay = new kakao.maps.CustomOverlay({
+        content: overlayContents(overlays.value[overlayIndex]),
+        map: null,
+        position: marker.getPosition(),
+      });
+
+      kakao.maps.event.addListener(marker, "click", function () {
+        hideAllOverlays();
+        overlay.setContent(overlayContents(overlays.value[overlayIndex]));
+        overlay.setMap(map);
+      });
+    }
+  });
 };
 
-const onCheckSaveListCancel = (address_name, road_address_name, place_name) => {
+// 저장된 장소 리스트에서 삭제
+const onCheckSaveListCancel = (
+  address_name,
+  road_address_name,
+  place_name,
+  place_url
+) => {
   saveLocationForm.value = {
     address_name: address_name,
     road_address_name: road_address_name,
     place_name: place_name,
+    place_url: place_url,
   };
 
   checkSaveListCancel.value = true;
@@ -259,7 +324,11 @@ const overlayContents = (overlay) => {
     <div id="overlayWrap" class="wrap">
       <div class="info">
         <div class="title">
-          ${overlay.place.place_name}
+          ${
+            overlay.place.place_name.length > 14
+              ? overlay.place.place_name.slice(0, 14) + "..."
+              : overlay.place.place_name
+          }
           <div id="overlayClose" class="close" title="닫기" onclick="closeOverlay()"></div>
         </div>
         <div class="body">
@@ -269,7 +338,7 @@ const overlayContents = (overlay) => {
               ${
                 overlay.place.place_url
                   ? `<div style="font-size:large;"><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a>
-                     <span style="margin-left: 10px;" id="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.road_address_name}','${overlay.place.place_name}')" class="q-gutter-sm">${saveButtonText}</span>
+                     <span style="margin-left: 10px;" class="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.road_address_name}','${overlay.place.place_name}','${overlay.place.place_url}')" class="q-gutter-sm">${saveButtonText}</span>
                       </div>`
                   : ""
               }
@@ -288,14 +357,19 @@ const closeOverlay = () => {
 window.closeOverlay = closeOverlay;
 
 // 저장하고 싶은 장소 저장
-
-const onSaveLocation = (address_name, road_address_name, place_name) => {
-  const element = document.getElementById("saveButton");
+const onSaveLocation = (
+  address_name,
+  road_address_name,
+  place_name,
+  place_url
+) => {
+  const element = document.querySelector(".saveButton");
 
   saveLocationForm.value = {
     address_name: address_name,
     road_address_name: road_address_name,
     place_name: place_name,
+    place_url: place_url,
   };
 
   // 기존 배열을 가져오기
@@ -401,18 +475,6 @@ const initKakaoMap = () => {
       map: map,
     });
     markers.value.push(marker);
-
-    // const circle = new kakao.maps.Circle({
-    //   center: new kakao.maps.LatLng(latitude, longitude),
-    //   radius: 500,
-    //   strokeWeight: 1,
-    //   strokeColor: "#75B8FA",
-    //   strokeOpacity: 1,
-    //   strokeStyle: "solid",
-    //   fillColor: "#CFE7FF",
-    //   fillOpacity: 0.4,
-    //   map: map,
-    // });
 
     overlays.value.push({
       place: {
@@ -585,7 +647,7 @@ const searchLocation = () => {
 
   hideAllOverlays();
 
-  ps.keywordSearch(searchKeyword.value, (data, status, _pagination) => {
+  ps.keywordSearch(searchKeyword.value, (data, status) => {
     if (status !== kakao.maps.services.Status.OK) {
       markers.value.forEach((marker) => marker.setMap(null));
       markers.value = [];
