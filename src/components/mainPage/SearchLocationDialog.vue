@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, defineProps, defineModel } from "vue";
+import { defineEmits, defineProps, defineModel } from "vue";
 
 const showSearchLocationDialog = defineModel("showSearchLocationDialog");
 const searchKeyword = defineModel("searchKeyword");
