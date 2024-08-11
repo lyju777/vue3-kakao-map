@@ -1,10 +1,7 @@
 <template>
   <q-page class="flex flex-center">
     <div class="map_wrap">
-      <div
-        id="map"
-        style="width: 100%; height: 100%; position: relative; overflow: hidden"
-      ></div>
+      <div id="map"></div>
 
       <!-- 장소검색 Dialog -->
       <search-location-dialog
@@ -178,7 +175,7 @@ const initKakaoMap = () => {
     const { latitude, longitude } = position.coords;
     const options = {
       center: new kakao.maps.LatLng(latitude, longitude),
-      level: 4,
+      level: 3,
     };
 
     map = new kakao.maps.Map(container, options);
@@ -202,6 +199,7 @@ const initKakaoMap = () => {
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
+      clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
@@ -211,6 +209,14 @@ const initKakaoMap = () => {
       hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
+    });
+
+    kakao.maps.event.addListener(map, "click", function () {
+      hideAllOverlays();
+    });
+
+    kakao.maps.event.addListener(map, "dragstart", function () {
+      hideAllOverlays();
     });
   });
 };
@@ -362,7 +368,7 @@ const goToSaveLocation = (item) => {
       // 지도 중심을 검색된 주소로 이동
       const currentLocation = new kakao.maps.LatLng(latitude, longitude);
       map.setCenter(currentLocation);
-      map.setLevel(4, { anchor: currentLocation });
+      map.setLevel(3, { anchor: currentLocation });
 
       showSaveLocationListDialog.value = false;
 
@@ -378,6 +384,7 @@ const goToSaveLocation = (item) => {
       const overlayIndex = overlays.value.length - 1;
 
       const overlay = new kakao.maps.CustomOverlay({
+        clickable: true,
         content: overlayContents(overlays.value[overlayIndex]),
         map: null,
         position: marker.getPosition(),
@@ -459,6 +466,7 @@ const displayMarkers = (places, latitude, longitude) => {
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
+      clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
@@ -473,7 +481,7 @@ const displayMarkers = (places, latitude, longitude) => {
 
   const currentLocation = new kakao.maps.LatLng(latitude, longitude);
   map.setCenter(currentLocation);
-  map.setLevel(4, { anchor: currentLocation });
+  map.setLevel(3, { anchor: currentLocation });
 };
 
 // 현위치로 이동
@@ -489,7 +497,7 @@ const returnMyLocation = () => {
     const currentLocation = new kakao.maps.LatLng(latitude, longitude);
 
     map.setCenter(currentLocation);
-    map.setLevel(4, { anchor: currentLocation });
+    map.setLevel(3, { anchor: currentLocation });
 
     markers.value.forEach((marker) => marker.setMap(null));
     markers.value = [];
@@ -512,6 +520,7 @@ const returnMyLocation = () => {
     const overlayIndex = overlays.value.length - 1;
 
     const overlay = new kakao.maps.CustomOverlay({
+      clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
