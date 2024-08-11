@@ -2,7 +2,7 @@
   "name": "vue3-kakao-map",
   "version": "0.0.1",
   "description": "Vue3 Kakao Map Project",
-  "productName": "Vue3 Kakao Map",
+  "productName": "Vuekao map",
   "author": "lyju777 <lyju777@hanmail.net>",
   "private": true,
   "scripts": {

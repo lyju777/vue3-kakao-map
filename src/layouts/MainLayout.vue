@@ -1,7 +1,7 @@
 <template>
   <div class="q-pa-md">
     <q-layout view="1Hh lpr 1Ff" class="shadow-2 rounded-borders">
-      <q-header class="bg-white" style="top: 8px; color: rgb(19 120 225)">
+      <q-header class="bg-white" style="margin: 3px; color: rgb(19 120 225)">
         <q-toolbar>
           <q-toolbar-title class="text-center">
             <q-avatar>

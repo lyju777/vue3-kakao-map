@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="showSearchLocationDialog" persistent>
+  <q-dialog style="z-index: 9999" v-model="showSearchLocationDialog" persistent>
     <q-card style="min-width: 350px">
       <q-card-section>
         <div class="text-h6" style="font-size: large">

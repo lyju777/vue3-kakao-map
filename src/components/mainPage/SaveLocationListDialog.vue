@@ -1,7 +1,7 @@
 <template>
   <!-- 저장 장소 리스트 Dialog -->
-  <q-dialog v-model="showSaveLocationListDialog">
-    <q-card>
+  <q-dialog style="z-index: 9998" v-model="showSaveLocationListDialog">
+    <q-card style="height: 80vh">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">저장한 장소</div>
         <q-space />
@@ -55,6 +55,7 @@
 
   <!-- 저장 장소 리스트 취소 확인팝업 -->
   <q-dialog
+    style="z-index: 9999"
     v-model="checkSaveListCancel"
     persistent
     transition-show="scale"
