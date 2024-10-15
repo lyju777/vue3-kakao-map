@@ -100,12 +100,21 @@ import {
   watch,
   computed,
 } from "vue";
-import { useQuasar } from "quasar";
 import SearchLocationDialog from "src/components/mainPage/SearchLocationDialog.vue";
 import SaveLocationListDialog from "src/components/mainPage/SaveLocationListDialog.vue";
 
+import useSearchResult from "src/hooks/useSearchResult";
+import useOverlayContents from "src/hooks/useOverlayContents";
+import useSaveLocation from "src/hooks/useSaveLocation";
+
+const props = defineProps({
+  searchCode: {
+    type: String,
+    required: true,
+  },
+});
+
 const { VITE_KAKAO_APP_KEY } = import.meta.env;
-const $q = useQuasar();
 
 let map = null;
 let ps = null;
@@ -134,20 +143,13 @@ const saveLocationForm = ref({
 // 저장된 장소 리스트
 const saveLocationList = ref([]);
 
-const props = defineProps({
-  searchCode: {
-    type: String,
-    required: true,
-  },
-});
-
 onMounted(() => {
   const script = document.createElement("script");
   script.type = "text/javascript";
   script.src = `//dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=${VITE_KAKAO_APP_KEY}&libraries=services`;
 
   script.onload = () => {
-    kakao.maps.load(() => {
+    window.kakao.maps.load(() => {
       initKakaoMap();
     });
   };
@@ -174,15 +176,15 @@ const initKakaoMap = () => {
   navigator.geolocation.getCurrentPosition((position) => {
     const { latitude, longitude } = position.coords;
     const options = {
-      center: new kakao.maps.LatLng(latitude, longitude),
+      center: new window.kakao.maps.LatLng(latitude, longitude),
       level: 3,
     };
 
-    map = new kakao.maps.Map(container, options);
-    ps = new kakao.maps.services.Places();
+    map = new window.kakao.maps.Map(container, options);
+    ps = new window.kakao.maps.services.Places();
 
-    const marker = new kakao.maps.Marker({
-      position: new kakao.maps.LatLng(latitude, longitude),
+    const marker = new window.kakao.maps.Marker({
+      position: new window.kakao.maps.LatLng(latitude, longitude),
       map: map,
     });
     markers.value.push(marker);
@@ -198,146 +200,28 @@ const initKakaoMap = () => {
 
     const overlayIndex = overlays.value.length - 1;
 
-    const overlay = new kakao.maps.CustomOverlay({
+    const overlay = new window.kakao.maps.CustomOverlay({
       clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
     });
 
-    kakao.maps.event.addListener(marker, "click", function () {
+    window.kakao.maps.event.addListener(marker, "click", function () {
       hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
     });
 
-    kakao.maps.event.addListener(map, "click", function () {
+    window.kakao.maps.event.addListener(map, "click", function () {
       hideAllOverlays();
     });
 
-    kakao.maps.event.addListener(map, "dragstart", function () {
+    window.kakao.maps.event.addListener(map, "dragstart", function () {
       hideAllOverlays();
     });
   });
 };
-
-// CustomOverlay적용
-// 카카오맵 CustomOverlay 이슈 https://devtalk.kakao.com/t/topic/105513 (template적용 불가)
-const overlayContents = (overlay) => {
-  const isSaved = isAddressSaved(
-    overlay.place.address_name,
-    overlay.place.place_name
-  );
-  const saveButtonText = isSaved ? "💛" : "🤍";
-  return `
-    <div id="overlayWrap" class="wrap">
-      <div class="info">
-        <div class="title">
-          ${
-            overlay.place.place_name.length > 14
-              ? overlay.place.place_name.slice(0, 14) + "..."
-              : overlay.place.place_name
-          }
-          <div id="overlayClose" class="close" title="닫기" onclick="closeOverlay()"></div>
-        </div>
-        <div class="body">
-          <div class="desc">
-            <div class="ellipsis">${overlay.place.address_name}</div>
-            <div class="jibun ellipsis">${overlay.place.road_address_name}</div>
-              ${
-                overlay.place.place_url
-                  ? `<div style="font-size:large;"><a href="${overlay.place.place_url}" target="_blank" class="link" style="text-decoration : none;">🔗</a>
-                     <span style="margin-left: 10px;" class="saveButton" onclick="onSaveLocation('${overlay.place.address_name}','${overlay.place.road_address_name}','${overlay.place.place_name}','${overlay.place.place_url}')" class="q-gutter-sm">${saveButtonText}</span>
-                      </div>`
-                  : ""
-              }
-          </div>
-        </div>
-      </div>
-    </div>`;
-};
-
-// 해당 overlayContents의 주소(address_name)가 localStorage에 저장되었는지 체크
-const isAddressSaved = (address_name, place_name) => {
-  const savedAddresses = localStorage.getItem("saved_address");
-  if (savedAddresses) {
-    const parsedAddresses = JSON.parse(savedAddresses);
-    return parsedAddresses.some(
-      (data) =>
-        data.address_name === address_name && data.place_name === place_name
-    );
-  }
-  return false;
-};
-
-// overlayContents 닫기
-const closeOverlay = () => {
-  document.getElementById("overlayWrap").style.display = "none";
-};
-
-// 전역 범위에 함수 노출 (overlayContents에서 onClick이벤트로 사용하기 위함)
-window.closeOverlay = closeOverlay;
-
-// 저장하고 싶은 장소 저장
-const onSaveLocation = (
-  address_name,
-  road_address_name,
-  place_name,
-  place_url
-) => {
-  const element = document.querySelector(".saveButton");
-
-  saveLocationForm.value = {
-    address_name: address_name,
-    road_address_name: road_address_name,
-    place_name: place_name,
-    place_url: place_url,
-  };
-
-  // 기존 배열을 가져오기
-  let getSavedAddress = localStorage.getItem("saved_address");
-  getSavedAddress = getSavedAddress ? JSON.parse(getSavedAddress) : [];
-
-  // 이미 저장된 장소인지 확인
-  if (getSavedAddress.some((data) => data.address_name === address_name)) {
-    const index = getSavedAddress.findIndex(
-      (data) => data.address_name === address_name
-    );
-    getSavedAddress.splice(index, 1);
-    SearchResultsPopup(
-      "top",
-      "positive",
-      "장소 저장이 취소 되었습니다.🤗",
-      "positive"
-    );
-
-    // 배열을 다시 로컬 스토리지에 저장
-    localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
-    if (element) {
-      element.textContent = "🤍";
-    }
-
-    return;
-  }
-  // 새로운 장소 저장
-  getSavedAddress.push(saveLocationForm.value);
-
-  // 배열을 다시 로컬 스토리지에 저장
-  localStorage.setItem("saved_address", JSON.stringify(getSavedAddress));
-  SearchResultsPopup(
-    "top",
-    "positive",
-    "장소가 저장 되었습니다.😎",
-    "positive"
-  );
-  if (element) {
-    element.textContent = "💛";
-  }
-  console.log("저장완료");
-};
-
-// 전역 범위에 함수 노출 (overlayContents에서 onClick이벤트로 사용하기 위함)
-window.onSaveLocation = onSaveLocation;
 
 // 저장된 장소로 이동
 const goToSaveLocation = (item) => {
@@ -346,10 +230,10 @@ const goToSaveLocation = (item) => {
   }
 
   hideAllOverlays();
-  const geocoder = new kakao.maps.services.Geocoder();
+  const geocoder = new window.kakao.maps.services.Geocoder();
 
   geocoder.addressSearch(item.address_name, (result, status) => {
-    if (status === kakao.maps.services.Status.OK) {
+    if (status === window.kakao.maps.services.Status.OK) {
       const { y: latitude, x: longitude } = result[0];
 
       // 기존 마커 제거
@@ -357,8 +241,8 @@ const goToSaveLocation = (item) => {
       markers.value = [];
 
       // 새로운 마커 생성
-      const marker = new kakao.maps.Marker({
-        position: new kakao.maps.LatLng(latitude, longitude),
+      const marker = new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(latitude, longitude),
         map: map,
       });
 
@@ -366,7 +250,7 @@ const goToSaveLocation = (item) => {
       markers.value.push(marker);
 
       // 지도 중심을 검색된 주소로 이동
-      const currentLocation = new kakao.maps.LatLng(latitude, longitude);
+      const currentLocation = new window.kakao.maps.LatLng(latitude, longitude);
       map.setCenter(currentLocation);
       map.setLevel(3, { anchor: currentLocation });
 
@@ -383,14 +267,14 @@ const goToSaveLocation = (item) => {
 
       const overlayIndex = overlays.value.length - 1;
 
-      const overlay = new kakao.maps.CustomOverlay({
+      const overlay = new window.kakao.maps.CustomOverlay({
         clickable: true,
         content: overlayContents(overlays.value[overlayIndex]),
         map: null,
         position: marker.getPosition(),
       });
 
-      kakao.maps.event.addListener(marker, "click", function () {
+      window.kakao.maps.event.addListener(marker, "click", function () {
         hideAllOverlays();
         overlay.setContent(overlayContents(overlays.value[overlayIndex]));
         overlay.setMap(map);
@@ -425,13 +309,13 @@ const searchLocation = () => {
   hideAllOverlays();
 
   ps.keywordSearch(searchKeyword.value, (data, status) => {
-    if (status !== kakao.maps.services.Status.OK) {
+    if (status !== window.kakao.maps.services.Status.OK) {
       markers.value.forEach((marker) => marker.setMap(null));
       markers.value = [];
 
       console.error(status);
 
-      SearchResultsPopup("top", "info", "검색 결과가 없습니다.😥", "negative");
+      searchResultsPopup("top", "info", "검색 결과가 없습니다.😥", "negative");
     } else {
       displayMarkers(data, data[0].y, data[0].x);
     }
@@ -448,8 +332,8 @@ const displayMarkers = (places, latitude, longitude) => {
   overlays.value = [];
 
   places.forEach((place, index) => {
-    const marker = new kakao.maps.Marker({
-      position: new kakao.maps.LatLng(place.y, place.x),
+    const marker = new window.kakao.maps.Marker({
+      position: new window.kakao.maps.LatLng(place.y, place.x),
       map: map,
     });
     markers.value.push(marker);
@@ -465,21 +349,21 @@ const displayMarkers = (places, latitude, longitude) => {
 
     const overlayIndex = overlays.value.length - 1;
 
-    const overlay = new kakao.maps.CustomOverlay({
+    const overlay = new window.kakao.maps.CustomOverlay({
       clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
       position: marker.getPosition(),
     });
 
-    kakao.maps.event.addListener(marker, "click", function () {
+    window.kakao.maps.event.addListener(marker, "click", function () {
       hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
     });
   });
 
-  const currentLocation = new kakao.maps.LatLng(latitude, longitude);
+  const currentLocation = new window.kakao.maps.LatLng(latitude, longitude);
   map.setCenter(currentLocation);
   map.setLevel(3, { anchor: currentLocation });
 };
@@ -494,7 +378,7 @@ const returnMyLocation = () => {
 
   navigator.geolocation.getCurrentPosition((position) => {
     const { latitude, longitude } = position.coords;
-    const currentLocation = new kakao.maps.LatLng(latitude, longitude);
+    const currentLocation = new window.kakao.maps.LatLng(latitude, longitude);
 
     map.setCenter(currentLocation);
     map.setLevel(3, { anchor: currentLocation });
@@ -502,7 +386,7 @@ const returnMyLocation = () => {
     markers.value.forEach((marker) => marker.setMap(null));
     markers.value = [];
 
-    const marker = new kakao.maps.Marker({
+    const marker = new window.kakao.maps.Marker({
       position: currentLocation,
       map: map,
     });
@@ -519,7 +403,7 @@ const returnMyLocation = () => {
 
     const overlayIndex = overlays.value.length - 1;
 
-    const overlay = new kakao.maps.CustomOverlay({
+    const overlay = new window.kakao.maps.CustomOverlay({
       clickable: true,
       content: overlayContents(overlays.value[overlayIndex]),
       map: null,
@@ -528,7 +412,7 @@ const returnMyLocation = () => {
 
     overlays.value[overlayIndex].overlay = overlay; // CustomOverlay 객체 저장
 
-    kakao.maps.event.addListener(marker, "click", function () {
+    window.kakao.maps.event.addListener(marker, "click", function () {
       hideAllOverlays();
       overlay.setContent(overlayContents(overlays.value[overlayIndex]));
       overlay.setMap(map);
@@ -549,13 +433,13 @@ const findNearBySearch = () => {
 
     ps.categorySearch(
       props.searchCode,
-      (data, status, _pagination) => {
-        if (status != kakao.maps.services.Status.OK) {
+      (data, status) => {
+        if (status != window.kakao.maps.services.Status.OK) {
           markers.value.forEach((marker) => marker.setMap(null));
           markers.value = [];
 
           console.error(status);
-          SearchResultsPopup(
+          searchResultsPopup(
             "top",
             "info",
             "검색 결과가 없습니다.😥",
@@ -565,34 +449,17 @@ const findNearBySearch = () => {
         displayMarkers(data, latitude, longitude);
       },
       {
-        location: new kakao.maps.LatLng(latitude, longitude),
+        location: new window.kakao.maps.LatLng(latitude, longitude),
         radius: 500,
-        sort: kakao.maps.services.SortBy.DISTANCE,
+        sort: window.kakao.maps.services.SortBy.DISTANCE,
       }
     );
   });
 };
 
-// 검색결과 팝업
-const SearchResultsPopup = (position, type, message, badgeColor) => {
-  $q.notify({
-    position,
-    type: type,
-    color: "yellow",
-    textColor: "black",
-    badgeColor: badgeColor,
-    badgeTextColor: "white",
-    message: message,
-  });
-};
-
-// 기존의 모든 .wrap div 요소를 화면에서 제거
-const hideAllOverlays = () => {
-  const wrapElements = document.querySelectorAll(".wrap");
-  wrapElements.forEach((element) => {
-    element.parentNode.removeChild(element);
-  });
-};
+const { searchResultsPopup } = useSearchResult();
+const { overlayContents, hideAllOverlays } = useOverlayContents();
+const { onSaveLocation } = useSaveLocation(saveLocationForm);
 
 // 외부에서 호출할 함수 정의
 defineExpose({
