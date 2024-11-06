@@ -10,8 +10,8 @@
 
 <br>
 
-![project-1](./public/img/1.project.png.png)
-![project-2](./public/img/2.project.png.png)
-![project-3](./public/img/3.project.png.png)
-![project-4](./public/img/4.project.png.png)
-![project-5](./public/img/5.project.png.png)
+![project-1](./public/img/1.project.png)
+![project-2](./public/img/2.project.png)
+![project-3](./public/img/3.project.png)
+![project-4](./public/img/4.project.png)
+![project-5](./public/img/5.project.png)
