@@ -32,7 +32,7 @@ VITE_KAKAO_APP_KEY
 
 ### Requirements
 ```sh
-node 14+ ~ or v18.20.1
+node 16+ ~ or v18.20.1
 
 npm i -g @quasar/cli
 ```
